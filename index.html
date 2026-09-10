@@ -127,6 +127,8 @@
   }
   .class-tabs button.active{ background:var(--primary); border-color:var(--primary); color:#fff; }
   .class-tabs button:hover:not(.active){ background:var(--teal-soft); border-color:var(--teal); }
+  .stat-view{ display:none; }
+  .stat-view.active{ display:block; }
 
   /* ---------- roster cards ---------- */
   .roster{ display:flex; flex-direction:column; gap:10px; }
@@ -306,27 +308,54 @@
     </section>
 
     <section id="view-stats" class="view">
-      <div class="stat-grid" id="statCards"></div>
-
-      <div class="panel">
-        <h2>학교 유형별 희망 인원</h2>
-        <p class="sub">전체 학생이 체크한 진학 희망 유형 분포입니다.</p>
-        <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
+      <div class="class-tabs" id="statTabs">
+        <button type="button" class="active" data-stat="hope">희망학교 통계</button>
+        <button type="button" data-stat="final">합격한 학교 통계</button>
       </div>
 
-      <div class="two-col">
+      <div id="stat-view-hope" class="stat-view active">
+        <div class="stat-grid" id="statCardsHope"></div>
+
         <div class="panel">
-          <h2>많이 지원한 학교 Top 10</h2>
-          <p class="sub">진학 희망 학교 이름을 기준으로 집계했습니다.</p>
-          <div class="chart-wrap tall"><canvas id="schoolChart"></canvas></div>
+          <h2>학교 유형별 희망 인원</h2>
+          <p class="sub">전체 학생이 체크한 진학 희망 유형 분포입니다.</p>
+          <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
         </div>
-        <div class="panel">
-          <h2>반별 인원 현황</h2>
-          <p class="sub">반별 응답 인원과 최종합격 확정 인원입니다.</p>
-          <table class="simple" id="classTable">
-            <thead><tr><th>반</th><th style="text-align:right;">인원</th><th style="text-align:right;">최종합격</th></tr></thead>
-            <tbody></tbody>
-          </table>
+
+        <div class="two-col">
+          <div class="panel">
+            <h2>희망 학교 Top 10</h2>
+            <p class="sub">진학 희망 학교 이름을 기준으로 집계했습니다.</p>
+            <div class="chart-wrap tall"><canvas id="hopeSchoolChart"></canvas></div>
+          </div>
+          <div class="panel">
+            <h2>반별 희망 응답 현황</h2>
+            <p class="sub">반별 전체 인원과 희망 학교 응답 인원입니다.</p>
+            <table class="simple" id="classTableHope">
+              <thead><tr><th>반</th><th style="text-align:right;">인원</th><th style="text-align:right;">응답</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="stat-view-final" class="stat-view">
+        <div class="stat-grid" id="statCardsFinal"></div>
+
+        <div class="two-col">
+          <div class="panel">
+            <h2>최종합격 학교 Top 10</h2>
+            <p class="sub">최종합격이 확정된 학교 이름을 기준으로 집계했습니다.</p>
+            <div class="chart-wrap tall"><canvas id="finalSchoolChart"></canvas></div>
+          </div>
+          <div class="panel">
+            <h2>반별 최종합격 현황</h2>
+            <p class="sub">반별 전체 인원과 최종합격 확정 인원입니다.</p>
+            <table class="simple" id="classTableFinal">
+              <thead><tr><th>반</th><th style="text-align:right;">인원</th><th style="text-align:right;">최종합격</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -374,7 +403,8 @@ const COL = { gpa:'D', apply1:'G', result1:'H', apply2:'I', result2:'J', finalSc
 
 let records = [];
 let typeChartInstance = null;
-let schoolChartInstance = null;
+let hopeSchoolChartInstance = null;
+let finalSchoolChartInstance = null;
 let adminMode = false;
 let selectedClass = '';
 
@@ -685,23 +715,22 @@ async function saveRecord(rowNumber){
 
 function renderStats(){
   const total = records.length;
-  const finalPass = records.filter(r => isPass(r.finalResult) && !isUndecided(r.finalSchool)).length;
   const hopeAnswered = records.filter(r => !isUndecided(r.hopeSchool)).length;
-  const undecided = total - hopeAnswered;
 
   const typeCounts = {};
   records.forEach(r => { const k = r.typeLabel || "미응답"; typeCounts[k] = (typeCounts[k]||0)+1; });
 
-  const schoolCounts = {};
-  records.forEach(r => { if(!isUndecided(r.hopeSchool)) schoolCounts[r.hopeSchool] = (schoolCounts[r.hopeSchool]||0)+1; });
-  const topSchools = Object.entries(schoolCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const topSchoolName = topSchools.length ? topSchools[0][0] : '-';
+  const hopeSchoolCounts = {};
+  records.forEach(r => { if(!isUndecided(r.hopeSchool)) hopeSchoolCounts[r.hopeSchool] = (hopeSchoolCounts[r.hopeSchool]||0)+1; });
+  const topHopeSchools = Object.entries(hopeSchoolCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const topHopeSchoolName = topHopeSchools.length ? topHopeSchools[0][0] : '-';
 
-  document.getElementById('statCards').innerHTML = `
+  // ---- 희망학교 통계 ----
+  document.getElementById('statCardsHope').innerHTML = `
     <div class="stat-card"><div class="num">${total}</div><div class="label">전체 학생 수</div></div>
     <div class="stat-card"><div class="num">${hopeAnswered}</div><div class="label">희망교 응답 인원</div></div>
-    <div class="stat-card"><div class="num">${finalPass}</div><div class="label">최종합격 확정 인원</div></div>
-    <div class="stat-card"><div class="num" style="font-size:19px;">${topSchoolName}</div><div class="label">최다 희망 학교</div></div>
+    <div class="stat-card"><div class="num">${total - hopeAnswered}</div><div class="label">미정 · 미응답</div></div>
+    <div class="stat-card"><div class="num" style="font-size:19px;">${topHopeSchoolName}</div><div class="label">최다 희망 학교</div></div>
   `;
 
   const typeLabels = Object.keys(typeCounts).sort((a,b) => typeCounts[b]-typeCounts[a]);
@@ -716,25 +745,65 @@ function renderStats(){
     }
   });
 
-  const schoolCtx = document.getElementById('schoolChart').getContext('2d');
-  if(schoolChartInstance) schoolChartInstance.destroy();
-  schoolChartInstance = new Chart(schoolCtx, {
+  const hopeSchoolCtx = document.getElementById('hopeSchoolChart').getContext('2d');
+  if(hopeSchoolChartInstance) hopeSchoolChartInstance.destroy();
+  hopeSchoolChartInstance = new Chart(hopeSchoolCtx, {
     type: 'bar',
-    data: { labels: topSchools.map(s => s[0]), datasets: [{ data: topSchools.map(s => s[1]), backgroundColor: '#B9862E', borderRadius: 6, maxBarThickness: 22 }] },
+    data: { labels: topHopeSchools.map(s => s[0]), datasets: [{ data: topHopeSchools.map(s => s[1]), backgroundColor: '#B9862E', borderRadius: 6, maxBarThickness: 22 }] },
     options: {
       indexAxis: 'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
       scales:{ x:{ beginAtZero:true, ticks:{ precision:0 }, grid:{ color:'#EAEEF2' } }, y:{ grid:{display:false}, ticks:{ font:{size:12} } } }
     }
   });
 
-  const classGroups = {};
+  const hopeClassGroups = {};
   records.forEach(r => {
-    if(!classGroups[r.classRoom]) classGroups[r.classRoom] = {total:0, finalPass:0};
-    classGroups[r.classRoom].total++;
-    if(isPass(r.finalResult) && !isUndecided(r.finalSchool)) classGroups[r.classRoom].finalPass++;
+    if(!hopeClassGroups[r.classRoom]) hopeClassGroups[r.classRoom] = {total:0, answered:0};
+    hopeClassGroups[r.classRoom].total++;
+    if(!isUndecided(r.hopeSchool)) hopeClassGroups[r.classRoom].answered++;
   });
-  const classRows = Object.entries(classGroups).sort((a,b)=> a[0].localeCompare(b[0], 'ko', {numeric:true}));
-  document.querySelector('#classTable tbody').innerHTML = classRows.map(([cls, v]) => `
+  const hopeClassRows = Object.entries(hopeClassGroups).sort((a,b)=> a[0].localeCompare(b[0], 'ko', {numeric:true}));
+  document.querySelector('#classTableHope tbody').innerHTML = hopeClassRows.map(([cls, v]) => `
+    <tr><td>${cls}</td><td class="num">${v.total}</td><td class="num">${v.answered}</td></tr>
+  `).join('');
+
+  // ---- 합격한 학교 통계 ----
+  const finalPassRecords = records.filter(r => isPass(r.finalResult) && !isUndecided(r.finalSchool));
+  const finalPassCount = finalPassRecords.length;
+  const pass1Count = records.filter(r => isPass(r.result1)).length;
+  const pass2Count = records.filter(r => isPass(r.result2)).length;
+
+  const finalSchoolCounts = {};
+  finalPassRecords.forEach(r => { finalSchoolCounts[r.finalSchool] = (finalSchoolCounts[r.finalSchool]||0)+1; });
+  const topFinalSchools = Object.entries(finalSchoolCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const topFinalSchoolName = topFinalSchools.length ? topFinalSchools[0][0] : '-';
+
+  document.getElementById('statCardsFinal').innerHTML = `
+    <div class="stat-card"><div class="num">${finalPassCount}</div><div class="label">최종합격 확정 인원</div></div>
+    <div class="stat-card"><div class="num">${pass1Count}</div><div class="label">1차 전형 합격 인원</div></div>
+    <div class="stat-card"><div class="num">${pass2Count}</div><div class="label">2차 전형 합격 인원</div></div>
+    <div class="stat-card"><div class="num" style="font-size:19px;">${topFinalSchoolName}</div><div class="label">최다 합격 학교</div></div>
+  `;
+
+  const finalSchoolCtx = document.getElementById('finalSchoolChart').getContext('2d');
+  if(finalSchoolChartInstance) finalSchoolChartInstance.destroy();
+  finalSchoolChartInstance = new Chart(finalSchoolCtx, {
+    type: 'bar',
+    data: { labels: topFinalSchools.map(s => s[0]), datasets: [{ data: topFinalSchools.map(s => s[1]), backgroundColor: '#2E7D5B', borderRadius: 6, maxBarThickness: 22 }] },
+    options: {
+      indexAxis: 'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ x:{ beginAtZero:true, ticks:{ precision:0 }, grid:{ color:'#EAEEF2' } }, y:{ grid:{display:false}, ticks:{ font:{size:12} } } }
+    }
+  });
+
+  const finalClassGroups = {};
+  records.forEach(r => {
+    if(!finalClassGroups[r.classRoom]) finalClassGroups[r.classRoom] = {total:0, finalPass:0};
+    finalClassGroups[r.classRoom].total++;
+    if(isPass(r.finalResult) && !isUndecided(r.finalSchool)) finalClassGroups[r.classRoom].finalPass++;
+  });
+  const finalClassRows = Object.entries(finalClassGroups).sort((a,b)=> a[0].localeCompare(b[0], 'ko', {numeric:true}));
+  document.querySelector('#classTableFinal tbody').innerHTML = finalClassRows.map(([cls, v]) => `
     <tr><td>${cls}</td><td class="num">${v.total}</td><td class="num">${v.finalPass}</td></tr>
   `).join('');
 }
@@ -746,6 +815,16 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     const target = btn.dataset.view;
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-' + target).classList.add('active');
+  });
+});
+
+document.querySelectorAll('#statTabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#statTabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.stat;
+    document.querySelectorAll('.stat-view').forEach(v => v.classList.remove('active'));
+    document.getElementById('stat-view-' + target).classList.add('active');
   });
 });
 

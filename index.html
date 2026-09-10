@@ -117,6 +117,17 @@
   .search-row input:focus,.search-row select:focus{ outline:2px solid var(--primary-light); outline-offset:1px; }
   .result-count{ font-size:13px; color:var(--ink-faint); margin:14px 0 10px; }
 
+  /* ---------- class tabs ---------- */
+  .class-tabs{
+    display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px;
+  }
+  .class-tabs button{
+    appearance:none; border:1px solid var(--border); background:#FBFCFD; color:var(--ink-soft);
+    font-family:inherit; font-size:13px; font-weight:600; padding:8px 14px; border-radius:20px; cursor:pointer;
+  }
+  .class-tabs button.active{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .class-tabs button:hover:not(.active){ background:var(--teal-soft); border-color:var(--teal); }
+
   /* ---------- roster cards ---------- */
   .roster{ display:flex; flex-direction:column; gap:10px; }
   .roster-card{
@@ -286,8 +297,8 @@
         <p class="sub">이름 또는 번호를 입력하거나 반을 선택해 진학 현황을 확인하세요.</p>
         <div class="search-row">
           <input type="text" id="nameInput" placeholder="이름 또는 번호 검색 (예: 김도연, 3번)">
-          <select id="classSelect"><option value="">전체 반</option></select>
         </div>
+        <div class="class-tabs" id="classTabs"></div>
         <p class="result-count" id="resultCount"></p>
         <div class="roster" id="rosterList"></div>
         <div class="empty" id="emptyMsg" style="display:none;">검색 결과가 없습니다. 이름이나 반을 다시 확인해 주세요.</div>
@@ -365,6 +376,7 @@ let records = [];
 let typeChartInstance = null;
 let schoolChartInstance = null;
 let adminMode = false;
+let selectedClass = '';
 
 const UNDECIDED = new Set(["", "미정", "없음", "-", "해당없음"]);
 function isUndecided(v){ return UNDECIDED.has(String(v||"").trim()); }
@@ -497,7 +509,7 @@ async function loadData(){
     const now = new Date();
     statusEl.innerHTML = '<span class="dot"></span>' + now.toLocaleString('ko-KR', {hour12:false}) + ' 기준 (총 ' + records.length + '명)';
 
-    populateClassSelect();
+    populateClassTabs();
     renderRoster();
     renderStats();
   }catch(err){
@@ -510,16 +522,30 @@ async function loadData(){
   }
 }
 
-function populateClassSelect(){
-  const sel = document.getElementById('classSelect');
-  const current = sel.value;
+function populateClassTabs(){
   const classes = [...new Set(records.map(r => r.classRoom))].sort((a,b)=>{
     const na = parseInt(a), nb = parseInt(b);
     if(!isNaN(na) && !isNaN(nb)) return na - nb;
     return a.localeCompare(b);
   });
-  sel.innerHTML = '<option value="">전체 반</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
-  sel.value = current;
+  if(selectedClass && !classes.includes(selectedClass)) selectedClass = '';
+
+  const tabsEl = document.getElementById('classTabs');
+  const items = ['', ...classes];
+  tabsEl.innerHTML = items.map(c => {
+    const label = c === '' ? '전체' : c;
+    const count = c === '' ? records.length : records.filter(r => r.classRoom === c).length;
+    return `<button type="button" class="${c === selectedClass ? 'active' : ''}" data-class="${c}">${label} <span style="opacity:.65;">${count}</span></button>`;
+  }).join('');
+
+  tabsEl.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedClass = btn.dataset.class;
+      tabsEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderRoster();
+    });
+  });
 }
 
 function highlight(text, query){
@@ -538,7 +564,7 @@ function resultBadge(v){
 
 function renderRoster(){
   const q = document.getElementById('nameInput').value.trim();
-  const cls = document.getElementById('classSelect').value;
+  const cls = selectedClass;
 
   let filtered = records.filter(r => {
     if(cls && r.classRoom !== cls) return false;
@@ -724,7 +750,6 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
 });
 
 document.getElementById('nameInput').addEventListener('input', renderRoster);
-document.getElementById('classSelect').addEventListener('change', renderRoster);
 document.getElementById('refreshBtn').addEventListener('click', loadData);
 
 loadData();

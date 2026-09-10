@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관동중학교 3학년 고입 희망 조회 · 현황</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#EEF1F4;
+    --surface:#FFFFFF;
+    --ink:#16263B;
+    --ink-soft:#4B5C70;
+    --ink-faint:#8593A3;
+    --primary:#1F3A5F;
+    --primary-light:#2F507C;
+    --accent:#B9862E;
+    --accent-soft:#F3E4C6;
+    --teal:#3E7C74;
+    --teal-soft:#DCEBE8;
+    --good:#2E7D5B;
+    --good-soft:#DEEFE5;
+    --border:#DBE2E9;
+    --danger:#B4453A;
+    --danger-soft:#F6E1DE;
+    --radius:10px;
+    --radius-lg:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'PretendardVariable','Pretendard',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .headline{font-family:'Noto Serif KR',serif;}
+
+  /* ---------- header ---------- */
+  header.top{ background:var(--primary); color:#EFF3F8; padding:26px 20px 0; }
+  .top-inner{ max-width:980px; margin:0 auto; display:flex; align-items:flex-start; gap:14px; }
+  .mark{
+    flex:none; width:40px;height:40px;
+    border:1.5px solid rgba(239,243,248,.55); border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Noto Serif KR',serif; font-weight:600; font-size:16px; margin-top:2px;
+  }
+  .top-text{ flex:1; }
+  .top-text h1{ font-size:21px; margin:0 0 4px; font-weight:600; letter-spacing:-0.01em; }
+  .top-text p{ margin:0; font-size:13px; color:#B9C6D6; }
+  .admin-toggle{
+    flex:none;
+    display:flex; align-items:center; gap:8px;
+    margin-top:2px;
+  }
+  .pill-btn{
+    appearance:none; border:1px solid rgba(239,243,248,.4);
+    background:rgba(255,255,255,.06); color:#EFF3F8;
+    font-family:inherit; font-size:12.5px; font-weight:600;
+    padding:7px 12px; border-radius:20px; cursor:pointer;
+    white-space:nowrap;
+  }
+  .pill-btn.on{ background:var(--accent); border-color:var(--accent); color:#241A08; }
+  .pill-btn.ghost{ background:transparent; padding:7px 9px; }
+  nav.tabs{ max-width:980px; margin:20px auto 0; display:flex; gap:2px; padding:0 20px; }
+  nav.tabs button{
+    appearance:none; border:none; background:transparent; color:#C4D0DE;
+    font-family:inherit; font-size:15px; font-weight:600;
+    padding:12px 18px 14px; cursor:pointer; border-bottom:3px solid transparent;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  nav.tabs button.active{ color:#FFFFFF; border-bottom-color:var(--accent); }
+  nav.tabs button:hover:not(.active){ color:#E3EAF2; }
+
+  /* ---------- layout ---------- */
+  main{ max-width:980px; margin:0 auto; padding:26px 20px 60px; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; margin-bottom:18px; }
+  .panel h2{ font-family:'Noto Serif KR',serif; font-size:17px; margin:0 0 4px; font-weight:600; color:var(--ink); }
+  .panel .sub{ font-size:13px; color:var(--ink-faint); margin:0 0 16px; }
+
+  /* ---------- legend ---------- */
+  .legend-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px 16px;
+    font-size:12.8px; color:var(--ink-soft);
+  }
+  .legend-grid dt{ font-weight:700; color:var(--ink); }
+  .legend-grid dd{ margin:2px 0 0; color:var(--ink-faint); }
+
+  /* ---------- admin banner ---------- */
+  .admin-banner{
+    display:none;
+    align-items:center; gap:10px;
+    background:var(--accent-soft); border:1px solid #E4C688;
+    color:#5A430F; border-radius:var(--radius); padding:10px 14px;
+    font-size:12.8px; font-weight:600; margin-bottom:16px;
+  }
+  .admin-banner.show{ display:flex; }
+
+  /* ---------- search controls ---------- */
+  .search-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .search-row input[type="text"]{
+    flex:1 1 220px; padding:11px 14px; border:1px solid var(--border); border-radius:var(--radius);
+    font-size:14.5px; font-family:inherit; color:var(--ink); background:#FBFCFD;
+  }
+  .search-row select{
+    padding:11px 12px; border:1px solid var(--border); border-radius:var(--radius);
+    font-size:14.5px; font-family:inherit; color:var(--ink); background:#FBFCFD;
+  }
+  .search-row input:focus,.search-row select:focus{ outline:2px solid var(--primary-light); outline-offset:1px; }
+  .result-count{ font-size:13px; color:var(--ink-faint); margin:14px 0 10px; }
+
+  /* ---------- roster cards ---------- */
+  .roster{ display:flex; flex-direction:column; gap:10px; }
+  .roster-card{
+    border:1px solid var(--border); border-radius:var(--radius); background:#FBFCFD; padding:14px 16px;
+  }
+  .rc-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .rc-head .who{ display:flex; align-items:baseline; gap:8px; }
+  .rc-head .name{ font-weight:700; font-size:15.5px; }
+  .rc-head .tag{ font-size:12px; color:var(--ink-faint); font-weight:600; }
+  .rc-head .gpa{ font-size:12.5px; color:var(--ink-soft); font-weight:600; background:#EEF1F4; padding:3px 9px; border-radius:20px; }
+
+  .rc-fields{
+    display:grid; grid-template-columns:repeat(2,1fr); gap:8px 16px;
+  }
+  .field{
+    display:flex; flex-direction:column; gap:2px;
+    padding:8px 10px; background:#fff; border:1px solid var(--border); border-radius:8px;
+  }
+  .field .flabel{ font-size:11px; color:var(--ink-faint); font-weight:700; }
+  .field .fval{ font-size:13.5px; color:var(--ink); font-weight:600; }
+  .field .fval.muted{ color:var(--ink-faint); font-weight:500; }
+  .field.final .fval{ color:var(--good); }
+  .field.final.fail .fval{ color:var(--danger); }
+  .badge{
+    display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;
+    background:var(--teal-soft); color:var(--teal); margin-left:6px;
+  }
+  .badge.pass{ background:var(--good-soft); color:var(--good); }
+  .badge.fail{ background:var(--danger-soft); color:var(--danger); }
+
+  .field input, .field select{
+    font-family:inherit; font-size:13.5px; border:1px solid var(--border); border-radius:6px;
+    padding:6px 7px; color:var(--ink); background:#FBFCFD;
+  }
+  .rc-save{
+    grid-column:1 / -1; display:flex; align-items:center; gap:10px; margin-top:4px;
+  }
+  .rc-save button{
+    appearance:none; border:none; background:var(--primary); color:#fff;
+    font-family:inherit; font-weight:700; font-size:12.8px; padding:8px 16px; border-radius:8px; cursor:pointer;
+  }
+  .rc-save button:hover{ background:var(--primary-light); }
+  .rc-save .status{ font-size:12.5px; color:var(--ink-faint); }
+  .rc-save .status.ok{ color:var(--good); font-weight:700; }
+  .rc-save .status.err{ color:var(--danger); font-weight:700; }
+
+  mark{ background:var(--accent-soft); color:inherit; border-radius:3px; padding:0 2px; }
+  .empty{ text-align:center; padding:36px 20px; color:var(--ink-faint); font-size:14px; }
+
+  /* ---------- stats ---------- */
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  .stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 16px; }
+  .stat-card .num{ font-family:'Noto Serif KR',serif; font-size:26px; font-weight:700; color:var(--primary); line-height:1.1; }
+  .stat-card .label{ font-size:12.5px; color:var(--ink-faint); margin-top:6px; }
+  .chart-wrap{ position:relative; height:280px; }
+  .chart-wrap.tall{ height:340px; }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  table.simple{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  table.simple th, table.simple td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
+  table.simple th{ color:var(--ink-faint); font-weight:600; font-size:12.5px; }
+  table.simple td.num{ text-align:right; font-variant-numeric:tabular-nums; font-weight:600; color:var(--primary); }
+
+  /* ---------- footer / status ---------- */
+  .sync-bar{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12.5px; color:var(--ink-faint); flex-wrap:wrap; }
+  .sync-bar .right{ display:flex; gap:8px; }
+  .sync-bar button{
+    appearance:none; border:1px solid var(--border); background:#FBFCFD; color:var(--primary);
+    font-family:inherit; font-weight:600; font-size:12.5px; padding:7px 12px; border-radius:8px; cursor:pointer;
+  }
+  .sync-bar button:hover{ background:var(--teal-soft); border-color:var(--teal); }
+  .dot{ width:7px;height:7px;border-radius:50%; background:var(--teal); display:inline-block; margin-right:6px; }
+  .dot.err{ background:var(--danger); }
+  .loading-box{ text-align:center; padding:60px 20px; color:var(--ink-faint); font-size:14px; }
+  .error-box{ text-align:center; padding:40px 20px; color:var(--danger); font-size:14px; }
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(15,25,40,.45);
+    align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background:#fff; border-radius:var(--radius-lg); padding:24px; width:100%; max-width:380px;
+  }
+  .modal h3{ font-family:'Noto Serif KR',serif; margin:0 0 6px; font-size:17px; }
+  .modal p{ font-size:13px; color:var(--ink-faint); margin:0 0 16px; }
+  .modal label{ font-size:12.5px; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:5px; }
+  .modal input{
+    width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px;
+    font-family:inherit; font-size:14px; margin-bottom:14px;
+  }
+  .modal .modal-err{ font-size:12.5px; color:var(--danger); margin:-8px 0 12px; display:none; }
+  .modal .modal-actions{ display:flex; justify-content:flex-end; gap:8px; }
+  .modal .modal-actions button{
+    appearance:none; border:none; font-family:inherit; font-weight:700; font-size:13px;
+    padding:9px 16px; border-radius:8px; cursor:pointer;
+  }
+  .modal .cancel{ background:#F1F3F5; color:var(--ink-soft); }
+  .modal .submit{ background:var(--primary); color:#fff; }
+
+  @media (max-width:640px){
+    .stat-grid{ grid-template-columns:repeat(2,1fr); }
+    .two-col{ grid-template-columns:1fr; }
+    .rc-fields{ grid-template-columns:1fr; }
+    .legend-grid{ grid-template-columns:1fr; }
+    .top-inner{ flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="mark">관</div>
+    <div class="top-text">
+      <h1 class="headline">관동중학교 3학년 고입 희망 현황</h1>
+      <p>2027학년도 고등학교 진학 희망 조회 · 통계 · 결과 관리</p>
+    </div>
+    <div class="admin-toggle">
+      <button class="pill-btn ghost" id="settingsBtn" title="연동 설정">⚙ 설정</button>
+      <button class="pill-btn" id="adminToggleBtn">🔒 관리자 모드</button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="active" data-view="search">학생 조회</button>
+    <button data-view="stats">통계 대시보드</button>
+  </nav>
+</header>
+
+<main>
+
+  <div id="statusArea" class="panel" style="padding:14px 18px;">
+    <div class="sync-bar">
+      <span id="syncText"><span class="dot"></span>불러오는 중…</span>
+      <div class="right">
+        <button id="refreshBtn">지금 새로고침</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loadingBox" class="loading-box">시트 데이터를 불러오고 있습니다…</div>
+  <div id="errorBox" class="error-box" style="display:none;"></div>
+
+  <div id="appBody" style="display:none;">
+
+    <section id="view-search" class="view active">
+
+      <div class="panel">
+        <h2>항목 안내</h2>
+        <p class="sub">시트의 각 칸이 무엇을 의미하는지 정리했습니다.</p>
+        <dl class="legend-grid">
+          <div><dt>내신성적</dt><dd>학생의 내신 산출 점수</dd></div>
+          <div><dt>진학 희망 학교 유형</dt><dd>학생이 체크한 진학 희망 계열(일반고·특목고 등)</dd></div>
+          <div><dt>진학 희망 학교</dt><dd>학생이 1차로 적어낸 희망 고교</dd></div>
+          <div><dt>1차 원서접수 학교 / 합격여부</dt><dd>1차 전형에 실제 접수한 학교와 결과</dd></div>
+          <div><dt>2차 원서접수 학교 / 합격여부</dt><dd>1차 불합격 등으로 2차 전형에 접수한 학교와 결과</dd></div>
+          <div><dt>최종합격 학교명 / 여부</dt><dd>최종적으로 진학이 확정된 학교와 합격 여부</dd></div>
+        </dl>
+      </div>
+
+      <div class="admin-banner" id="adminBanner">
+        🔓 관리자 모드가 켜져 있습니다. 각 학생 카드에서 값을 수정하고 저장하면 구글 시트에 바로 반영됩니다.
+      </div>
+
+      <div class="panel">
+        <h2>이름으로 찾기</h2>
+        <p class="sub">이름 또는 번호를 입력하거나 반을 선택해 진학 현황을 확인하세요.</p>
+        <div class="search-row">
+          <input type="text" id="nameInput" placeholder="이름 또는 번호 검색 (예: 김도연, 3번)">
+          <select id="classSelect"><option value="">전체 반</option></select>
+        </div>
+        <p class="result-count" id="resultCount"></p>
+        <div class="roster" id="rosterList"></div>
+        <div class="empty" id="emptyMsg" style="display:none;">검색 결과가 없습니다. 이름이나 반을 다시 확인해 주세요.</div>
+      </div>
+    </section>
+
+    <section id="view-stats" class="view">
+      <div class="stat-grid" id="statCards"></div>
+
+      <div class="panel">
+        <h2>학교 유형별 희망 인원</h2>
+        <p class="sub">전체 학생이 체크한 진학 희망 유형 분포입니다.</p>
+        <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <h2>많이 지원한 학교 Top 10</h2>
+          <p class="sub">진학 희망 학교 이름을 기준으로 집계했습니다.</p>
+          <div class="chart-wrap tall"><canvas id="schoolChart"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>반별 인원 현황</h2>
+          <p class="sub">반별 응답 인원과 최종합격 확정 인원입니다.</p>
+          <table class="simple" id="classTable">
+            <thead><tr><th>반</th><th style="text-align:right;">인원</th><th style="text-align:right;">최종합격</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- 설정 모달 -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <h3>연동 설정</h3>
+    <p>구글 시트에 저장하려면 Apps Script 웹앱 URL이 필요합니다. 한 번만 설정하면 이 브라우저에 저장됩니다.</p>
+    <label for="apiUrlInput">https://script.google.com/macros/s/AKfycbxDspSmhmRMRClZD6mRXFVx-zK-DgdbgDqppPSwuCcDsKs6pnYOCAyxeEMu8cLp0xCA/exec</label>
+    <input type="text" id="apiUrlInput" placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="modal-actions">
+      <button class="cancel" id="settingsCancel">닫기</button>
+      <button class="submit" id="settingsSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 관리자 비밀번호 모달 -->
+<div class="modal-backdrop" id="adminModal">
+  <div class="modal">
+    <h3>관리자 인증</h3>
+    <p>수정 권한이 있는 담당 선생님만 입력해 주세요.</p>
+    <label for="adminPwInput">관리자 비밀번호</label>
+    <input type="password" id="adminPwInput" placeholder="비밀번호 입력">
+    <p class="modal-err" id="adminErr">비밀번호가 올바르지 않습니다.</p>
+    <div class="modal-actions">
+      <button class="cancel" id="adminCancel">취소</button>
+      <button class="submit" id="adminSubmit">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = "1peaPvWHcI4phwmFttisxe8NXE-plaG_CfXrmXn7nfzs";
+const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1`;
+
+// 열 구성: A 학급, B 번호, C 이름, D 내신성적, E 진학희망유형, F 진학희망학교,
+//          G 1차원서접수학교, H 합격여부(1차), I 2차원서접수학교, J 합격여부(2차),
+//          K 최종합격학교명, L 최종합격여부
+const COL = { gpa:'D', apply1:'G', result1:'H', apply2:'I', result2:'J', finalSchool:'K', finalResult:'L' };
+
+let records = [];
+let typeChartInstance = null;
+let schoolChartInstance = null;
+let adminMode = false;
+
+const UNDECIDED = new Set(["", "미정", "없음", "-", "해당없음"]);
+function isUndecided(v){ return UNDECIDED.has(String(v||"").trim()); }
+function isPass(v){ return /합격/.test(String(v||"")) && !/불합격/.test(String(v||"")); }
+
+function parseTypeCell(raw){
+  if(!raw) return {label:"미응답"};
+  const m = String(raw).match(/^(\d+)\.\s*(.+)$/);
+  if(!m) return {label:String(raw)};
+  return {label:m[2].replace(/\(.*\)/, "").trim()};
+}
+
+// ---------- 설정 (Apps Script URL) ----------
+function getApiUrl(){ return localStorage.getItem('gd_api_url') || ''; }
+function setApiUrl(v){ localStorage.setItem('gd_api_url', v); }
+
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  document.getElementById('apiUrlInput').value = getApiUrl();
+  document.getElementById('settingsModal').classList.add('show');
+});
+document.getElementById('settingsCancel').addEventListener('click', () => {
+  document.getElementById('settingsModal').classList.remove('show');
+});
+document.getElementById('settingsSave').addEventListener('click', () => {
+  setApiUrl(document.getElementById('apiUrlInput').value.trim());
+  document.getElementById('settingsModal').classList.remove('show');
+});
+
+// ---------- 관리자 인증 ----------
+function getCachedPw(){ return sessionStorage.getItem('gd_admin_pw') || ''; }
+
+async function callApi(payload){
+  const url = getApiUrl();
+  if(!url) throw new Error("먼저 ⚙ 설정에서 Apps Script 웹앱 URL을 입력해 주세요.");
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error || "요청이 거부되었습니다.");
+  return data;
+}
+
+const adminToggleBtn = document.getElementById('adminToggleBtn');
+const adminModal = document.getElementById('adminModal');
+const adminBanner = document.getElementById('adminBanner');
+
+adminToggleBtn.addEventListener('click', () => {
+  if(adminMode){
+    adminMode = false;
+    sessionStorage.removeItem('gd_admin_pw');
+    updateAdminUi();
+    return;
+  }
+  document.getElementById('adminPwInput').value = '';
+  document.getElementById('adminErr').style.display = 'none';
+  adminModal.classList.add('show');
+});
+document.getElementById('adminCancel').addEventListener('click', () => adminModal.classList.remove('show'));
+document.getElementById('adminSubmit').addEventListener('click', async () => {
+  const pw = document.getElementById('adminPwInput').value;
+  const errEl = document.getElementById('adminErr');
+  try{
+    await callApi({ action:'auth', password: pw });
+    sessionStorage.setItem('gd_admin_pw', pw);
+    adminMode = true;
+    adminModal.classList.remove('show');
+    updateAdminUi();
+  }catch(e){
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+});
+
+function updateAdminUi(){
+  adminToggleBtn.textContent = adminMode ? '🔓 관리자 모드 (켜짐)' : '🔒 관리자 모드';
+  adminToggleBtn.classList.toggle('on', adminMode);
+  adminBanner.classList.toggle('show', adminMode);
+  renderRoster();
+}
+
+// ---------- 데이터 불러오기 ----------
+async function loadData(){
+  const statusEl = document.getElementById('syncText');
+  try{
+    statusEl.innerHTML = '<span class="dot"></span>불러오는 중…';
+    const res = await fetch(GVIZ_URL, {cache:"no-store"});
+    if(!res.ok) throw new Error("시트를 불러오지 못했습니다 (status " + res.status + ")");
+    const text = await res.text();
+    const jsonStr = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+    const parsed = JSON.parse(jsonStr);
+    const rows = parsed.table.rows || [];
+
+    const parsedRecords = [];
+    rows.forEach((r, idx) => {
+      const c = r.c || [];
+      const val = i => {
+        const cell = c[i];
+        if(!cell) return "";
+        const raw = (cell.f !== undefined && cell.f !== null) ? cell.f : cell.v;
+        return raw === null || raw === undefined ? "" : String(raw).trim();
+      };
+      const classRoom = val(0);
+      const number = val(1);
+      const name = val(2);
+      if(!classRoom || !name) return;
+      if(name.length > 8 || classRoom.includes("학급") || name.includes("이름")) return;
+
+      const typeRaw = val(4);
+      parsedRecords.push({
+        rowNumber: idx + 2, // headers=1 이므로 데이터는 시트 2행부터 시작
+        classRoom, number, name,
+        gpa: val(3),
+        typeRaw, typeLabel: parseTypeCell(typeRaw).label,
+        hopeSchool: val(5),
+        apply1: val(6), result1: val(7),
+        apply2: val(8), result2: val(9),
+        finalSchool: val(10), finalResult: val(11)
+      });
+    });
+
+    if(parsedRecords.length === 0) throw new Error("시트에서 학생 데이터를 찾지 못했습니다. 시트 구성을 확인해 주세요.");
+
+    records = parsedRecords;
+    document.getElementById('loadingBox').style.display = 'none';
+    document.getElementById('errorBox').style.display = 'none';
+    document.getElementById('appBody').style.display = 'block';
+
+    const now = new Date();
+    statusEl.innerHTML = '<span class="dot"></span>' + now.toLocaleString('ko-KR', {hour12:false}) + ' 기준 (총 ' + records.length + '명)';
+
+    populateClassSelect();
+    renderRoster();
+    renderStats();
+  }catch(err){
+    console.error(err);
+    document.getElementById('loadingBox').style.display = 'none';
+    const eb = document.getElementById('errorBox');
+    eb.style.display = 'block';
+    eb.textContent = "데이터를 불러오지 못했습니다: " + err.message + " — 시트 공유 설정이 '링크가 있는 모든 사용자에게 공개(뷰어)'인지 확인해 주세요.";
+    statusEl.innerHTML = '<span class="dot err"></span>동기화 실패';
+  }
+}
+
+function populateClassSelect(){
+  const sel = document.getElementById('classSelect');
+  const current = sel.value;
+  const classes = [...new Set(records.map(r => r.classRoom))].sort((a,b)=>{
+    const na = parseInt(a), nb = parseInt(b);
+    if(!isNaN(na) && !isNaN(nb)) return na - nb;
+    return a.localeCompare(b);
+  });
+  sel.innerHTML = '<option value="">전체 반</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
+  sel.value = current;
+}
+
+function highlight(text, query){
+  if(!query || !text) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if(idx === -1) return text;
+  return text.slice(0, idx) + '<mark>' + text.slice(idx, idx+query.length) + '</mark>' + text.slice(idx+query.length);
+}
+
+function resultBadge(v){
+  if(isUndecided(v)) return '';
+  if(isPass(v)) return `<span class="badge pass">${v}</span>`;
+  if(/불합격/.test(v)) return `<span class="badge fail">${v}</span>`;
+  return `<span class="badge">${v}</span>`;
+}
+
+function renderRoster(){
+  const q = document.getElementById('nameInput').value.trim();
+  const cls = document.getElementById('classSelect').value;
+
+  let filtered = records.filter(r => {
+    if(cls && r.classRoom !== cls) return false;
+    if(!q) return true;
+    return r.name.includes(q) || r.number.includes(q) || r.number.replace('번','').includes(q.replace('번',''));
+  });
+
+  const list = document.getElementById('rosterList');
+  const countEl = document.getElementById('resultCount');
+  const emptyEl = document.getElementById('emptyMsg');
+  countEl.textContent = `${filtered.length}명 표시 중 (전체 ${records.length}명)`;
+
+  if(filtered.length === 0){
+    list.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  filtered.sort((a,b) => {
+    if(a.classRoom !== b.classRoom) return a.classRoom.localeCompare(b.classRoom, 'ko', {numeric:true});
+    return a.number.localeCompare(b.number, 'ko', {numeric:true});
+  });
+
+  list.innerHTML = filtered.map(r => adminMode ? renderEditCard(r, q) : renderViewCard(r, q)).join('');
+
+  if(adminMode){
+    filtered.forEach(r => {
+      const btn = document.getElementById('save-' + r.rowNumber);
+      if(btn) btn.addEventListener('click', () => saveRecord(r.rowNumber));
+    });
+  }
+}
+
+function renderViewCard(r, q){
+  const finalCls = r.finalSchool && !isUndecided(r.finalSchool) ? (isPass(r.finalResult) ? '' : (/불합격/.test(r.finalResult) ? 'fail' : '')) : '';
+  return `
+    <div class="roster-card">
+      <div class="rc-head">
+        <div class="who">
+          <span class="name">${highlight(r.name, q)}</span>
+          <span class="tag">${r.classRoom} · ${r.number}</span>
+        </div>
+        ${r.gpa ? `<span class="gpa">내신 ${r.gpa}</span>` : ''}
+      </div>
+      <div class="rc-fields">
+        <div class="field"><span class="flabel">진학 희망 유형</span><span class="fval">${r.typeLabel || '-'}</span></div>
+        <div class="field"><span class="flabel">진학 희망 학교</span><span class="fval">${highlight(r.hopeSchool, q) || '미정'}</span></div>
+        <div class="field"><span class="flabel">1차 원서접수 학교</span><span class="fval ${!r.apply1?'muted':''}">${r.apply1 || '미접수'} ${resultBadge(r.result1)}</span></div>
+        <div class="field"><span class="flabel">2차 원서접수 학교</span><span class="fval ${!r.apply2?'muted':''}">${r.apply2 || '해당없음'} ${resultBadge(r.result2)}</span></div>
+        <div class="field final ${finalCls}"><span class="flabel">최종합격 학교명</span><span class="fval">${r.finalSchool || '미확정'}</span></div>
+        <div class="field final ${finalCls}"><span class="flabel">최종합격 여부</span><span class="fval">${r.finalResult || '-'} ${resultBadge(r.finalResult)}</span></div>
+      </div>
+    </div>`;
+}
+
+function renderEditCard(r){
+  return `
+    <div class="roster-card">
+      <div class="rc-head">
+        <div class="who">
+          <span class="name">${r.name}</span>
+          <span class="tag">${r.classRoom} · ${r.number}</span>
+        </div>
+      </div>
+      <div class="rc-fields">
+        <div class="field"><span class="flabel">내신성적</span><input type="text" id="f-gpa-${r.rowNumber}" value="${r.gpa}"></div>
+        <div class="field"><span class="flabel">진학 희망 유형</span><input type="text" id="f-type-${r.rowNumber}" value="${r.typeRaw}"></div>
+        <div class="field"><span class="flabel">진학 희망 학교</span><input type="text" id="f-hope-${r.rowNumber}" value="${r.hopeSchool}"></div>
+        <div class="field"><span class="flabel">1차 원서접수 학교</span><input type="text" id="f-apply1-${r.rowNumber}" value="${r.apply1}"></div>
+        <div class="field"><span class="flabel">합격여부 (1차)</span><input type="text" id="f-result1-${r.rowNumber}" value="${r.result1}" placeholder="합격 / 불합격"></div>
+        <div class="field"><span class="flabel">2차 원서접수 학교</span><input type="text" id="f-apply2-${r.rowNumber}" value="${r.apply2}"></div>
+        <div class="field"><span class="flabel">합격여부 (2차)</span><input type="text" id="f-result2-${r.rowNumber}" value="${r.result2}" placeholder="합격 / 불합격"></div>
+        <div class="field"><span class="flabel">최종합격 학교명</span><input type="text" id="f-finalschool-${r.rowNumber}" value="${r.finalSchool}"></div>
+        <div class="field"><span class="flabel">최종합격 여부</span><input type="text" id="f-finalresult-${r.rowNumber}" value="${r.finalResult}" placeholder="합격 / 불합격"></div>
+        <div class="rc-save">
+          <button id="save-${r.rowNumber}">저장</button>
+          <span class="status" id="status-${r.rowNumber}"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function saveRecord(rowNumber){
+  const statusEl = document.getElementById('status-' + rowNumber);
+  statusEl.className = 'status';
+  statusEl.textContent = '저장 중…';
+
+  const g = id => document.getElementById(id).value.trim();
+  const updates = {};
+  updates[COL.gpa] = g('f-gpa-' + rowNumber);
+  updates['E'] = g('f-type-' + rowNumber);
+  updates['F'] = g('f-hope-' + rowNumber);
+  updates[COL.apply1] = g('f-apply1-' + rowNumber);
+  updates[COL.result1] = g('f-result1-' + rowNumber);
+  updates[COL.apply2] = g('f-apply2-' + rowNumber);
+  updates[COL.result2] = g('f-result2-' + rowNumber);
+  updates[COL.finalSchool] = g('f-finalschool-' + rowNumber);
+  updates[COL.finalResult] = g('f-finalresult-' + rowNumber);
+
+  try{
+    await callApi({ action:'update', password: getCachedPw(), row: rowNumber, updates });
+    statusEl.textContent = '저장됨 ✓';
+    statusEl.className = 'status ok';
+    const rec = records.find(r => r.rowNumber === rowNumber);
+    if(rec){
+      rec.gpa = updates[COL.gpa]; rec.typeRaw = updates['E']; rec.typeLabel = parseTypeCell(updates['E']).label;
+      rec.hopeSchool = updates['F']; rec.apply1 = updates[COL.apply1]; rec.result1 = updates[COL.result1];
+      rec.apply2 = updates[COL.apply2]; rec.result2 = updates[COL.result2];
+      rec.finalSchool = updates[COL.finalSchool]; rec.finalResult = updates[COL.finalResult];
+    }
+    renderStats();
+  }catch(e){
+    statusEl.textContent = '저장 실패: ' + e.message;
+    statusEl.className = 'status err';
+  }
+}
+
+function renderStats(){
+  const total = records.length;
+  const finalPass = records.filter(r => isPass(r.finalResult) && !isUndecided(r.finalSchool)).length;
+  const hopeAnswered = records.filter(r => !isUndecided(r.hopeSchool)).length;
+  const undecided = total - hopeAnswered;
+
+  const typeCounts = {};
+  records.forEach(r => { const k = r.typeLabel || "미응답"; typeCounts[k] = (typeCounts[k]||0)+1; });
+
+  const schoolCounts = {};
+  records.forEach(r => { if(!isUndecided(r.hopeSchool)) schoolCounts[r.hopeSchool] = (schoolCounts[r.hopeSchool]||0)+1; });
+  const topSchools = Object.entries(schoolCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const topSchoolName = topSchools.length ? topSchools[0][0] : '-';
+
+  document.getElementById('statCards').innerHTML = `
+    <div class="stat-card"><div class="num">${total}</div><div class="label">전체 학생 수</div></div>
+    <div class="stat-card"><div class="num">${hopeAnswered}</div><div class="label">희망교 응답 인원</div></div>
+    <div class="stat-card"><div class="num">${finalPass}</div><div class="label">최종합격 확정 인원</div></div>
+    <div class="stat-card"><div class="num" style="font-size:19px;">${topSchoolName}</div><div class="label">최다 희망 학교</div></div>
+  `;
+
+  const typeLabels = Object.keys(typeCounts).sort((a,b) => typeCounts[b]-typeCounts[a]);
+  const typeCtx = document.getElementById('typeChart').getContext('2d');
+  if(typeChartInstance) typeChartInstance.destroy();
+  typeChartInstance = new Chart(typeCtx, {
+    type: 'bar',
+    data: { labels: typeLabels, datasets: [{ data: typeLabels.map(l => typeCounts[l]), backgroundColor: '#1F3A5F', borderRadius: 6, maxBarThickness: 42 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ x:{ grid:{display:false}, ticks:{ font:{size:11.5}, autoSkip:false, maxRotation:20, minRotation:0 } }, y:{ beginAtZero:true, ticks:{ precision:0 }, grid:{ color:'#EAEEF2' } } }
+    }
+  });
+
+  const schoolCtx = document.getElementById('schoolChart').getContext('2d');
+  if(schoolChartInstance) schoolChartInstance.destroy();
+  schoolChartInstance = new Chart(schoolCtx, {
+    type: 'bar',
+    data: { labels: topSchools.map(s => s[0]), datasets: [{ data: topSchools.map(s => s[1]), backgroundColor: '#B9862E', borderRadius: 6, maxBarThickness: 22 }] },
+    options: {
+      indexAxis: 'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ x:{ beginAtZero:true, ticks:{ precision:0 }, grid:{ color:'#EAEEF2' } }, y:{ grid:{display:false}, ticks:{ font:{size:12} } } }
+    }
+  });
+
+  const classGroups = {};
+  records.forEach(r => {
+    if(!classGroups[r.classRoom]) classGroups[r.classRoom] = {total:0, finalPass:0};
+    classGroups[r.classRoom].total++;
+    if(isPass(r.finalResult) && !isUndecided(r.finalSchool)) classGroups[r.classRoom].finalPass++;
+  });
+  const classRows = Object.entries(classGroups).sort((a,b)=> a[0].localeCompare(b[0], 'ko', {numeric:true}));
+  document.querySelector('#classTable tbody').innerHTML = classRows.map(([cls, v]) => `
+    <tr><td>${cls}</td><td class="num">${v.total}</td><td class="num">${v.finalPass}</td></tr>
+  `).join('');
+}
+
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.view;
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + target).classList.add('active');
+  });
+});
+
+document.getElementById('nameInput').addEventListener('input', renderRoster);
+document.getElementById('classSelect').addEventListener('change', renderRoster);
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+loadData();
+setInterval(loadData, 5 * 60 * 1000); // 5분마다 자동 새로고침
+</script>
+
+</body>
+</html>
